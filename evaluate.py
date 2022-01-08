@@ -17,8 +17,8 @@ if __name__ == '__main__':
         # import pdb; pdb.set_trace()
         # policy = policies.RandomVocabElimination(vocab)
         # policy = policies.CharacterFrequencyVocabElimination(vocab)
-        policy = policies.RandomUniqueVocabElimination(vocab)
-        # policy = policies.RandomCharFreqUniqueVocabElimination(vocab)
+        # policy = policies.RandomUniqueVocabElimination(vocab)
+        policy = policies.InfoSeekingVocabElimination(vocab)
 
         game = Game(wordle, policy, display=False)
         success = game.play()

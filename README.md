@@ -13,6 +13,7 @@ nltk.download("words")
 | NLTK words            | RandomCharFreqUniqueVocabElimination | 0.80     |
 | NLTK words            | RandomVocabElimination+              | 0.91     |
 | NLTK words            | RandomUniqueCharVocabElimination+    | 0.94     |
+| NLTK words            | InfoSeekingVocabElimination (v1)     | 0.40     |
 
 CharacterFrequencyVocabElimination picks "arara" first in NLTK words corpus which 
 
@@ -34,6 +35,7 @@ Heuristics for what words are "valuable":
 - Contains all unique letters
 - Doesn't repeat any (char, position) that we're used before and we know are wrong
 - Contains lots of letters we haven't tried yet
+- Contains letters that we know are in the word but haven't positioned yet
 
 Other heuristics based on this idea:
 - If there's only one letter remaining to guess

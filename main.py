@@ -19,7 +19,7 @@ if __name__ == '__main__':
     wordle = Wordle(set(vocab), random.choice(vocab))
 
     # policy = policies.RandomVocabElimination(vocab)
-    policy = policies.RandomUniqueVocabElimination(vocab)
+    policy = policies.InfoSeekingVocabElimination(vocab)
 
     game = Game(wordle, policy, display=True)
     success = game.play()

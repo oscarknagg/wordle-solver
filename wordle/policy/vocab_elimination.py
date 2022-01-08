@@ -116,16 +116,38 @@ class InfoSeekingVocabElimination(VocabElimination, Policy):
     def __init__(self, vocab: List[str]):
         super().__init__(vocab)
         self.n_unique = np.array([len(set([char for char in v])) for v in vocab])
-        self.tried_letters = set()
+        self.untried_letters = {char: 1 for char in string.ascii_lowercase}
+        self.is_untried = np.ones(self.v.shape)
+        self.is_in_word_but_not_placed = np.zeros(self.v.shape)
+
+        self.in_word_but_not_placed = {char: 0 for char in string.ascii_lowercase}
+
+    def process_in_word_result(self, place, char):
+        super().process_in_word_result(place, char)
+        self.in_word_but_not_placed[char] = 1
+
+    def process_in_place_result(self, place, char):
+        super().process_in_place_result(place, char)
+        self.in_word_but_not_placed[char] = 0
 
     def guess(self) -> str:
         n_unique = self.n_unique.copy()
-        n_unique[~self.eliminated] = 0
-        mask_plus_unique = self.eliminated & (n_unique == n_unique.max())
-        v = self.v[mask_plus_unique]
-        # But now don't guess based only remaining possible answers
 
-        guess = ""
-        for char in guess:
-            self.tried_letters.add(char)
-        return guess
+        self.is_untried = utils.map_array(self.v, self.untried_letters)
+        n_untried = self.is_untried.sum(axis=1)
+
+        self.is_in_word_but_not_placed = utils.map_array(self.v, self.in_word_but_not_placed)
+        n_notplaced = self.is_in_word_but_not_placed.sum(axis=1)
+
+        score = n_unique + n_untried + np.minimum(n_notplaced, 1)
+
+        candidates = self.v[score == score.max()]
+        # print(len(self.v[self.eliminated]), self.v[self.eliminated][0])
+        i = np.random.randint(len(candidates))
+
+        # import pdb; pdb.set_trace()
+
+        if len(self.v[self.eliminated]) == 1:
+            return "".join(self.v[self.eliminated][0])
+        else:
+            return "".join(candidates[i])
