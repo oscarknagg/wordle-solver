@@ -1,7 +1,7 @@
 from wordle.policy.common import Policy
 
 
-class HumanPlayer(Policy):
+class Human(Policy):
     def guess(self) -> str:
         prompt = "Enter your guess: "
         while True:

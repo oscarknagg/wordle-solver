@@ -42,4 +42,4 @@ class Game:
 
     def _print(self, obs):
         if self.display:
-            print(obs)
+            print_observation(obs)
