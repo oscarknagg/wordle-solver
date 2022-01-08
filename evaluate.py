@@ -16,8 +16,10 @@ if __name__ == '__main__':
         wordle = Wordle(set(vocab), v)
         # import pdb; pdb.set_trace()
         # policy = policies.RandomVocabElimination(vocab)
-        policy = policies.CharacterFrequencyVocabElimination(vocab)
-        game = Game(wordle, policy)
+        # policy = policies.CharacterFrequencyVocabElimination(vocab)
+        policy = policies.RandomUniqueVocabElimination(vocab)
+
+        game = Game(wordle, policy, display=False)
         success = game.play()
         results.append(success)
         iterator.set_description("{:.2f}".format(np.mean(results)))

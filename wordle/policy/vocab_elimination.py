@@ -66,3 +66,18 @@ class CharacterFrequencyVocabElimination(VocabElimination, Policy):
             i = np.random.choice(np.arange(len(v)), 10, p=self.probs)
         return "".join(v[i])
 
+
+class RandomUniqueVocabElimination(VocabElimination, Policy):
+    """Eliminates vocabulary based on observations and guesses randomly
+    based on what remains, prioritising words with more unique characters."""
+    def __init__(self, vocab: List[str]):
+        super().__init__(vocab)
+        self.n_unique = np.array([len(set([char for char in v])) for v in vocab])
+
+    def guess(self) -> str:
+        n_unique = self.n_unique.copy()
+        n_unique[~self.mask] = 0
+        mask_plus_unique = self.mask & (n_unique == n_unique.max())
+        v = self.v[mask_plus_unique]
+        i = np.random.randint(len(v))
+        return "".join(v[i])
