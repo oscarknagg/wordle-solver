@@ -1,4 +1,4 @@
-from wordle.common import IN_PLACE, IN_WORD, NOT_IN_WORD
+from wordle.constants import IN_PLACE, IN_WORD, NOT_IN_WORD
 
 
 class Wordle:

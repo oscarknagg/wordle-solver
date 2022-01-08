@@ -3,27 +3,28 @@ from typing import List
 import string
 import numpy as np
 
-from wordle.common import IN_PLACE, IN_WORD, NOT_IN_WORD
+from wordle.constants import IN_PLACE, IN_WORD, NOT_IN_WORD
 from wordle.policy.common import Policy
+from wordle import utils
 
 
 class VocabElimination:
     def __init__(self, vocab: List[str]):
         self.v = np.char.array([[char for char in v] for v in vocab])
-        self.mask = np.ones(len(vocab)).astype(bool)
+        self.eliminated = np.ones(len(vocab)).astype(bool)
 
     def process_in_place_result(self, place, char):
-        self.mask &= self.v[:, place] == char
+        self.eliminated &= self.v[:, place] == char
 
     def process_in_word_result(self, place, char):
         # Remaining words must contain char in any position
-        self.mask &= (self.v == char).any(axis=1)
+        self.eliminated &= (self.v == char).any(axis=1)
         # Remaining words cannot contain `char` at position `place` (otherwise
         # it would be a GREEN/IN_PLACE result)
-        self.mask &= (self.v[:, place] != char)
+        self.eliminated &= (self.v[:, place] != char)
 
     def process_not_in_word_result(self, char):
-        self.mask &= ~(self.v == char).any(axis=1)
+        self.eliminated &= ~(self.v == char).any(axis=1)
 
     def update(self, output):
         for i, (char, result) in enumerate(output):
@@ -40,7 +41,7 @@ class RandomVocabElimination(VocabElimination, Policy):
     based on what remains."""
 
     def guess(self) -> str:
-        v = self.v[self.mask]
+        v = self.v[self.eliminated]
         i = np.random.randint(len(v))
         return "".join(v[i])
 
@@ -56,16 +57,15 @@ class CharacterFrequencyVocabElimination(VocabElimination, Policy):
         for char in string.ascii_lowercase:
             char_frequencies[char] = (self.v == char).sum()
 
-        u, inv = np.unique(self.v, return_inverse=True)
         # Replaces each character in the vocab array with its frequency in the vocab
-        chars_to_freqs = np.array([char_frequencies[x] for x in u])[inv].reshape(self.v.shape)
+        chars_to_freqs = utils.map_array(self.v, char_frequencies)
         self.freqs = chars_to_freqs.sum(axis=1)
         self.probs = self.freqs / chars_to_freqs.sum()
 
     def guess(self) -> str:
-        v = self.v[self.mask]
+        v = self.v[self.eliminated]
         if self.deterministic:
-            i = self.freqs[self.mask].argmax()
+            i = self.freqs[self.eliminated].argmax()
         else:
             i = np.random.choice(np.arange(len(v)), 10, p=self.probs)
         return "".join(v[i])
@@ -80,8 +80,8 @@ class RandomUniqueVocabElimination(VocabElimination, Policy):
 
     def guess(self) -> str:
         n_unique = self.n_unique.copy()
-        n_unique[~self.mask] = 0
-        mask_plus_unique = self.mask & (n_unique == n_unique.max())
+        n_unique[~self.eliminated] = 0
+        mask_plus_unique = self.eliminated & (n_unique == n_unique.max())
         v = self.v[mask_plus_unique]
         i = np.random.randint(len(v))
         return "".join(v[i])
@@ -105,8 +105,27 @@ class RandomCharFreqUniqueVocabElimination(VocabElimination, Policy):
 
     def guess(self) -> str:
         n_unique = self.n_unique.copy()
-        n_unique[~self.mask] = 0
-        mask_plus_unique = self.mask & (n_unique == n_unique.max())
+        n_unique[~self.eliminated] = 0
+        mask_plus_unique = self.eliminated & (n_unique == n_unique.max())
         v = self.v[mask_plus_unique]
         i = self.freqs[mask_plus_unique].argmax()
         return "".join(v[i])
+
+
+class InfoSeekingVocabElimination(VocabElimination, Policy):
+    def __init__(self, vocab: List[str]):
+        super().__init__(vocab)
+        self.n_unique = np.array([len(set([char for char in v])) for v in vocab])
+        self.tried_letters = set()
+
+    def guess(self) -> str:
+        n_unique = self.n_unique.copy()
+        n_unique[~self.eliminated] = 0
+        mask_plus_unique = self.eliminated & (n_unique == n_unique.max())
+        v = self.v[mask_plus_unique]
+        # But now don't guess based only remaining possible answers
+
+        guess = ""
+        for char in guess:
+            self.tried_letters.add(char)
+        return guess

@@ -2,7 +2,7 @@ from nltk.corpus import words
 from tqdm import tqdm
 import numpy as np
 from wordle.wordle import Wordle
-from wordle.common import NUM_LETTERS
+from wordle.constants import NUM_LETTERS
 from wordle import policy as policies
 from wordle.game import Game
 

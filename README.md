@@ -12,7 +12,7 @@ nltk.download("words")
 | NLTK words            | RandomUniqueCharVocabElimination     | 0.83     |
 | NLTK words            | RandomCharFreqUniqueVocabElimination | 0.80     |
 | NLTK words            | RandomVocabElimination+              | 0.91     |
-| NLTK words            | RandomUniqueCharVocabElimination+    | 0.XX     |
+| NLTK words            | RandomUniqueCharVocabElimination+    | 0.94     |
 
 CharacterFrequencyVocabElimination picks "arara" first in NLTK words corpus which 
 
@@ -33,9 +33,29 @@ h u l k y
 Heuristics for what words are "valuable":
 - Contains all unique letters
 - Doesn't repeat any (char, position) that we're used before and we know are wrong
-- 
+- Contains lots of letters we haven't tried yet
 
 Other heuristics based on this idea:
 - If there's only one letter remaining to guess
   - e.g. * u s h y, could be "bushy", "cushy" or "mushy"
   - then it might be worth submitting "climb" as it will find out which of c, m or b is in the remaining slot
+
+
+More failure cases:
+```
+Answer: douse
+b i l g e
+c o p s e
+h o r s e
+y o u s e
+t o u s e
+m o u s e
+
+Answer: varve
+m o i s e
+a r u k e
+c a r t e
+p a r g e
+l a r v e
+w a r v e
+```

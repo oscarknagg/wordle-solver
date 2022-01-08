@@ -3,7 +3,7 @@ import argparse
 
 from wordle.game import Game
 from wordle.wordle import Wordle
-from wordle.common import NUM_LETTERS
+from wordle.constants import NUM_LETTERS
 import wordle.policy as policies
 
 if __name__ == '__main__':

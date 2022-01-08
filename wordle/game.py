@@ -1,4 +1,4 @@
-from wordle.common import NUM_ROUNDS, IN_PLACE, IN_WORD
+from wordle.constants import NUM_ROUNDS, IN_PLACE, IN_WORD
 from colorama import Back
 
 
