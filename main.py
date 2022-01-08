@@ -1,5 +1,7 @@
 import random
 from colorama import Back
+from typing import List
+import numpy as np
 
 NUM_ROUNDS = 6
 NOT_IN_WORD = 0
@@ -106,6 +108,39 @@ class HumanPlayer(Policy):
         pass
 
 
+class RandomVocabElimination(Policy):
+    """Eliminates vocabulary based on observations and guesses randomly
+    based on what remains."""
+
+    def __init__(self, vocab: List[str]):
+        self.v = np.char.array([[char for char in v] for v in vocab])
+
+    def process_in_place_result(self, place, char):
+        mask = self.v[:, place] == char
+        self.v = self.v[mask]
+
+    def process_in_word_result(self, char):
+        mask = (self.v == char).any(axis=1)
+        self.v = self.v[mask]
+
+    def process_not_in_word_result(self, char):
+        mask = ~(self.v == char).any(axis=1)
+        self.v = self.v[mask]
+
+    def update(self, output):
+        for i, (char, result) in enumerate(output):
+            if result == IN_PLACE:
+                self.process_in_place_result(i, char)
+            elif result == IN_WORD:
+                self.process_in_word_result(char)
+            elif result == NOT_IN_WORD:
+                self.process_not_in_word_result(char)
+
+    def guess(self) -> str:
+        i = np.random.randint(len(self.v))
+        return "".join(self.v[i])
+
+
 if __name__ == '__main__':
     from nltk.corpus import words
     from colorama import init
@@ -113,9 +148,12 @@ if __name__ == '__main__':
 
     vocab = [w for w in words.words() if len(w) == 5 and w.islower()]
     wordle = Wordle(set(vocab), random.choice(vocab))
-    player = HumanPlayer()
-    game = Game(wordle, player)
+
+    # policy = HumanPlayer()
+    policy = RandomVocabElimination(vocab)
+
+    game = Game(wordle, policy)
     success = game.play()
-    print(wordle.target)
+    print(success, wordle.target)
 
 
