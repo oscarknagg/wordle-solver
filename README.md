@@ -11,6 +11,8 @@ nltk.download("words")
 | NLTK words            | CharacterFrequencyVocabElimination   | 0.14     |
 | NLTK words            | RandomUniqueCharVocabElimination     | 0.83     |
 | NLTK words            | RandomCharFreqUniqueVocabElimination | 0.80     |
+| NLTK words            | RandomVocabElimination+              | 0.91     |
+| NLTK words            | RandomUniqueCharVocabElimination+    | 0.XX     |
 
 CharacterFrequencyVocabElimination picks "arara" first in NLTK words corpus which 
 

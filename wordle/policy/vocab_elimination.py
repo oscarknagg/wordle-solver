@@ -15,8 +15,12 @@ class VocabElimination:
     def process_in_place_result(self, place, char):
         self.mask &= self.v[:, place] == char
 
-    def process_in_word_result(self, char):
+    def process_in_word_result(self, place, char):
+        # Remaining words must contain char in any position
         self.mask &= (self.v == char).any(axis=1)
+        # Remaining words cannot contain `char` at position `place` (otherwise
+        # it would be a GREEN/IN_PLACE result)
+        self.mask &= (self.v[:, place] != char)
 
     def process_not_in_word_result(self, char):
         self.mask &= ~(self.v == char).any(axis=1)
@@ -26,7 +30,7 @@ class VocabElimination:
             if result == IN_PLACE:
                 self.process_in_place_result(i, char)
             elif result == IN_WORD:
-                self.process_in_word_result(char)
+                self.process_in_word_result(i, char)
             elif result == NOT_IN_WORD:
                 self.process_not_in_word_result(char)
 
