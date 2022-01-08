@@ -10,6 +10,7 @@ from wordle import utils
 
 class VocabElimination:
     def __init__(self, vocab: List[str]):
+        # vocab = list(set(vocab))
         self.v = np.char.array([[char for char in v] for v in vocab])
         self.eliminated = np.ones(len(vocab)).astype(bool)
 
@@ -134,20 +135,31 @@ class InfoSeekingVocabElimination(VocabElimination, Policy):
         n_unique = self.n_unique.copy()
 
         self.is_untried = utils.map_array(self.v, self.untried_letters)
-        n_untried = self.is_untried.sum(axis=1)
+        # Multiply by first occurences to get number of unique untried letters
+        first_occurences = (self.v != np.roll(self.v, 1, axis=1)).astype(int)
+        n_unique_untried = (self.is_untried*first_occurences).sum(axis=1)
 
         self.is_in_word_but_not_placed = utils.map_array(self.v, self.in_word_but_not_placed)
-        n_notplaced = self.is_in_word_but_not_placed.sum(axis=1)
+        first_occurences = (self.v != np.roll(self.v, 1, axis=1)).astype(int)
+        # Multiply by first occurences to prevent the following edge case:
+        # Say the letter "a" is in the word but unplaced
+        # The candidate guess "aaabc" would get a score of 3
+        n_notplaced = (self.is_in_word_but_not_placed*first_occurences).sum(axis=1)
 
-        score = n_unique + n_untried + np.minimum(n_notplaced, 1)
+        score = 0*n_unique + n_unique_untried + n_notplaced
 
         candidates = self.v[score == score.max()]
-        # print(len(self.v[self.eliminated]), self.v[self.eliminated][0])
-        i = np.random.randint(len(candidates))
-
+        # print("Non-eliminated: ", len(self.v[self.eliminated]))
+        # print("Untried: ", {k for k, v in self.untried_letters.items() if v == 1})
+        # print("Unplaced: ", {k for k, v in self.in_word_but_not_placed.items() if v == 1})
+        # print(n_notplaced.max())
         # import pdb; pdb.set_trace()
 
         if len(self.v[self.eliminated]) == 1:
             return "".join(self.v[self.eliminated][0])
         else:
-            return "".join(candidates[i])
+            i = np.random.randint(len(candidates))
+            guess = "".join(candidates[i])
+            for char in guess:
+                self.untried_letters[char] = 0
+            return guess
