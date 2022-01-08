@@ -17,9 +17,10 @@ def print_observation(obs):
 
 
 class Game:
-    def __init__(self, wordle, policy):
+    def __init__(self, wordle, policy, display=False):
         self.wordle = wordle
         self.policy = policy
+        self.display = display
 
     def play(self):
         i_round = 0
@@ -29,7 +30,7 @@ class Game:
             if observation is None:
                 continue
 
-            print_observation(observation)
+            self._print(observation)
             self.policy.update(observation)
 
             if self.wordle.won:
@@ -38,3 +39,7 @@ class Game:
             i_round += 1
 
         return False
+
+    def _print(self, obs):
+        if self.display:
+            print(obs)
