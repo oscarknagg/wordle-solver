@@ -81,3 +81,28 @@ class RandomUniqueVocabElimination(VocabElimination, Policy):
         v = self.v[mask_plus_unique]
         i = np.random.randint(len(v))
         return "".join(v[i])
+
+
+class RandomCharFreqUniqueVocabElimination(VocabElimination, Policy):
+    def __init__(self, vocab: List[str]):
+        super().__init__(vocab)
+        self.n_unique = np.array([len(set([char for char in v])) for v in vocab])
+
+        # Calculate character frequencies
+        char_frequencies = {}
+        for char in string.ascii_lowercase:
+            char_frequencies[char] = (self.v == char).sum()
+
+        u, inv = np.unique(self.v, return_inverse=True)
+        # Replaces each character in the vocab array with its frequency in the vocab
+        chars_to_freqs = np.array([char_frequencies[x] for x in u])[inv].reshape(self.v.shape)
+        self.freqs = chars_to_freqs.sum(axis=1)
+        self.probs = self.freqs / chars_to_freqs.sum()
+
+    def guess(self) -> str:
+        n_unique = self.n_unique.copy()
+        n_unique[~self.mask] = 0
+        mask_plus_unique = self.mask & (n_unique == n_unique.max())
+        v = self.v[mask_plus_unique]
+        i = self.freqs[mask_plus_unique].argmax()
+        return "".join(v[i])
