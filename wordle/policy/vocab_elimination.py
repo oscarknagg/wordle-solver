@@ -10,27 +10,28 @@ from wordle import utils
 
 class VocabElimination:
     def __init__(self, vocab: List[str]):
-        # vocab = list(set(vocab))
         self.v = np.char.array([[char for char in v] for v in vocab])
-        self.eliminated = np.ones(len(vocab)).astype(bool)
+        self.reset()
 
+    def reset(self):
+        self.remaining = np.ones(len(self.v)).astype(bool)
         self.untried_letters = {char: 1 for char in string.ascii_lowercase}
         self.in_word_but_not_placed = {char: 0 for char in string.ascii_lowercase}
 
     def process_in_place_result(self, place, char):
-        self.eliminated &= self.v[:, place] == char
+        self.remaining &= self.v[:, place] == char
         self.in_word_but_not_placed[char] = 0
 
     def process_in_word_result(self, place, char):
         # Remaining words must contain char in any position
-        self.eliminated &= (self.v == char).any(axis=1)
+        self.remaining &= (self.v == char).any(axis=1)
         # Remaining words cannot contain `char` at position `place` (otherwise
         # it would be a GREEN/IN_PLACE result)
-        self.eliminated &= (self.v[:, place] != char)
+        self.remaining &= (self.v[:, place] != char)
         self.in_word_but_not_placed[char] = 1
 
     def process_not_in_word_result(self, char):
-        self.eliminated &= ~(self.v == char).any(axis=1)
+        self.remaining &= ~(self.v == char).any(axis=1)
 
     def update(self, output):
         for i, (char, result) in enumerate(output):
@@ -47,7 +48,7 @@ class RandomVocabElimination(VocabElimination, Policy):
     based on what remains."""
 
     def guess(self) -> str:
-        v = self.v[self.eliminated]
+        v = self.v[self.remaining]
         i = np.random.randint(len(v))
         return "".join(v[i])
 
@@ -69,9 +70,9 @@ class CharacterFrequencyVocabElimination(VocabElimination, Policy):
         self.probs = self.freqs / chars_to_freqs.sum()
 
     def guess(self) -> str:
-        v = self.v[self.eliminated]
+        v = self.v[self.remaining]
         if self.deterministic:
-            i = self.freqs[self.eliminated].argmax()
+            i = self.freqs[self.remaining].argmax()
         else:
             i = np.random.choice(np.arange(len(v)), 10, p=self.probs)
         return "".join(v[i])
@@ -86,8 +87,8 @@ class RandomUniqueVocabElimination(VocabElimination, Policy):
 
     def guess(self) -> str:
         n_unique = self.n_unique.copy()
-        n_unique[~self.eliminated] = 0
-        mask_plus_unique = self.eliminated & (n_unique == n_unique.max())
+        n_unique[~self.remaining] = 0
+        mask_plus_unique = self.remaining & (n_unique == n_unique.max())
         v = self.v[mask_plus_unique]
         i = np.random.randint(len(v))
         return "".join(v[i])
@@ -111,8 +112,8 @@ class RandomCharFreqUniqueVocabElimination(VocabElimination, Policy):
 
     def guess(self) -> str:
         n_unique = self.n_unique.copy()
-        n_unique[~self.eliminated] = 0
-        mask_plus_unique = self.eliminated & (n_unique == n_unique.max())
+        n_unique[~self.remaining] = 0
+        mask_plus_unique = self.remaining & (n_unique == n_unique.max())
         v = self.v[mask_plus_unique]
         i = self.freqs[mask_plus_unique].argmax()
         return "".join(v[i])
@@ -158,8 +159,8 @@ class InfoSeekingVocabElimination(VocabElimination, Policy):
         # print("gorge" in self.vocab[self.eliminated].tolist())
         # import pdb; pdb.set_trace()
 
-        if len(self.v[self.eliminated]) == 1:
-            return "".join(self.v[self.eliminated][0])
+        if len(self.v[self.remaining]) == 1:
+            return "".join(self.v[self.remaining][0])
         else:
             i = np.random.randint(len(candidates))
             guess = "".join(candidates[i])
@@ -190,10 +191,10 @@ class ExploreExploitVocabElimination(VocabElimination, Policy):
         untried_letters_arr = np.array(list(self.untried_letters.values()))
         n_unique_untried = (self.v_onehot.sum(axis=1) * untried_letters_arr).clip(0, 1).sum(axis=1).astype(int)
 
-        scores = 5*self.eliminated + self.c_explore * n_unique_untried
+        scores = 5 * self.remaining + self.c_explore * n_unique_untried
 
-        if len(self.v[self.eliminated]) == 1:
-            return "".join(self.v[self.eliminated][0])
+        if len(self.v[self.remaining]) == 1:
+            return "".join(self.v[self.remaining][0])
         else:
             i = np.random.choice(np.arange(len(self.v)), 1, p=utils.softmax(scores, self.temperature)).item()
             guess = "".join(self.v[i])
