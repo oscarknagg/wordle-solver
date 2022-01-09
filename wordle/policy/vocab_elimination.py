@@ -3,7 +3,7 @@ from typing import List
 import string
 import numpy as np
 
-from wordle.constants import IN_PLACE, IN_WORD, NOT_IN_WORD
+from wordle.constants import IN_PLACE, IN_WORD, NOT_IN_WORD, NUM_LETTERS
 from wordle.policy.common import Policy
 from wordle import utils
 
@@ -123,6 +123,14 @@ class InfoSeekingVocabElimination(VocabElimination, Policy):
 
         self.in_word_but_not_placed = {char: 0 for char in string.ascii_lowercase}
 
+        self.vocab = np.char.array(vocab)
+
+        self.v_int = utils.map_array(self.v, {char: i for i, char in enumerate(string.ascii_lowercase)})
+
+        self.v_onehot = np.zeros((len(self.v), 5, len(string.ascii_lowercase)))
+        for i in range(NUM_LETTERS):
+            self.v_onehot[np.arange(len(self.v)), i, self.v_int[:, i]] = 1
+
     def process_in_word_result(self, place, char):
         super().process_in_word_result(place, char)
         self.in_word_but_not_placed[char] = 1
@@ -132,27 +140,28 @@ class InfoSeekingVocabElimination(VocabElimination, Policy):
         self.in_word_but_not_placed[char] = 0
 
     def guess(self) -> str:
-        n_unique = self.n_unique.copy()
-
         self.is_untried = utils.map_array(self.v, self.untried_letters)
-        # Multiply by first occurences to get number of unique untried letters
-        first_occurences = (self.v != np.roll(self.v, 1, axis=1)).astype(int)
-        n_unique_untried = (self.is_untried*first_occurences).sum(axis=1)
+        untried_letters_arr = np.array(list(self.untried_letters.values()))
+        n_unique_untried = (self.v_onehot.sum(axis=1) * untried_letters_arr).clip(0, 1).sum(axis=1).astype(int)
 
         self.is_in_word_but_not_placed = utils.map_array(self.v, self.in_word_but_not_placed)
         first_occurences = (self.v != np.roll(self.v, 1, axis=1)).astype(int)
         # Multiply by first occurences to prevent the following edge case:
         # Say the letter "a" is in the word but unplaced
         # The candidate guess "aaabc" would get a score of 3
-        n_notplaced = (self.is_in_word_but_not_placed*first_occurences).sum(axis=1)
+        # n_notplaced = (self.is_in_word_but_not_placed*first_occurences).sum(axis=1)
+        n_notplaced = self.is_in_word_but_not_placed.sum(axis=1)
 
-        score = 0*n_unique + n_unique_untried + n_notplaced
+        scores = n_unique_untried + n_notplaced
 
-        candidates = self.v[score == score.max()]
-        # print("Non-eliminated: ", len(self.v[self.eliminated]))
-        # print("Untried: ", {k for k, v in self.untried_letters.items() if v == 1})
-        # print("Unplaced: ", {k for k, v in self.in_word_but_not_placed.items() if v == 1})
-        # print(n_notplaced.max())
+        candidates = self.v[scores == scores.max()]
+        print("Non-eliminated: ", len(self.v[self.eliminated]))
+        print("Untried: ", {k for k, v in self.untried_letters.items() if v == 1})
+        print("Tried: ", {k for k, v in self.untried_letters.items() if v == 0})
+        print("Unplaced: ", {k for k, v in self.in_word_but_not_placed.items() if v == 1})
+        print("Best scores. Unplaced={}, Untried={}, Total={}".format(
+            n_notplaced.max(), n_unique_untried.max(), scores.max()))
+        # print("gorge" in self.vocab[self.eliminated].tolist())
         # import pdb; pdb.set_trace()
 
         if len(self.v[self.eliminated]) == 1:
