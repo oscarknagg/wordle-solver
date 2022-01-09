@@ -16,6 +16,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     vocab = [w for w in words.words() if len(w) == NUM_LETTERS and w.islower()]
+    vocab = sorted(list(set(vocab)))
     wordle = Wordle(set(vocab), random.choice(vocab))
 
     # policy = policies.RandomVocabElimination(vocab)

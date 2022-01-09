@@ -9,6 +9,7 @@ from wordle.game import Game
 if __name__ == '__main__':
 
     vocab = [w for w in words.words() if len(w) == NUM_LETTERS and w.islower()]
+    vocab = sorted(list(set(vocab)))
 
     results = []
     iterator = tqdm(vocab)
@@ -16,11 +17,11 @@ if __name__ == '__main__':
         wordle = Wordle(set(vocab), v)
         # import pdb; pdb.set_trace()
         # policy = policies.RandomVocabElimination(vocab)
-        # policy = policies.CharacterFrequencyVocabElimination(vocab)
         # policy = policies.RandomUniqueVocabElimination(vocab)
-        policy = policies.InfoSeekingVocabElimination(vocab)
+        # policy = policies.InfoSeekingVocabElimination(vocab)
+        policy = policies.ExploreExploitVocabElimination(vocab)
 
         game = Game(wordle, policy, display=False)
         success = game.play()
         results.append(success)
-        iterator.set_description("{:.2f}".format(np.mean(results)))
+        iterator.set_description("{:.3f}".format(np.mean(results)))
